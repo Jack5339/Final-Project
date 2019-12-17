@@ -1,0 +1,185 @@
+---
+title: "Final Project" 
+subtitle: "Final Project Presentation"
+author: "Xutao Liu"
+output: html_notebook
+---
+
+### League of Legends
+
+League of Legends is a fast-paced, competitive online game that blends the speed and intensity of an RTS with RPG elements, also known MOBA, or Multiplayer online battle arena. In which two teams of powerful champions, each with a unique design and playstyle, battle head-to-head across multiple battlefields and game modes (5 vs. 5 competitive PC game). 
+
+It is one of - if not the most - popular game currently around. LoL has a professional league. The top prize for the best team is over five million dollars and the average player makes a six-figure income This is the dataset for Competitive matches of League of Legends from 2015 to 2018.
+[here's the link](https://na.leagueoflegends.com/en/game-info/get-started/what-is-lol/)
+
+![](https://lolstatic-a.akamaihd.net/frontpage/apps/prod/LolGameInfo-Harbinger/en_US/38ab789b95736954fc41a681dd4ea6066e58fd66/assets/assets/images/get-started/whatislol-intro.jpg)
+
+
+- The guiding question/ motivation for your analysis
+
+I wants to know whcih teams have won the Championship during the years.
+
+*** Does a team who play more games played in the league have a greater chance to become/enter World Championship and win ?
+
+- An obstacle that you encountered, and how you resolved it
+
+Trying to load the data from kaggle(website) into R failed, so I downloaed file and import locally
+
+- The key insights, conclusions, or takeaway with respect to your guiding question/motivation based on your work
+
+Base on the Number of games different League played Graph, we can see that LCK (South Korea) have played most competitive matches out of all other different regions with total of 1445, and out of that, SKT played 403 games, and SSG played 322 games. No wonder they are the best team in the world.
+
+[Wikipedia](https://en.wikipedia.org/wiki/League_of_Legends_World_Championship#Season_8)
+[KaggleData](https://www.kaggle.com/chuckephron/leagueoflegends#matchinfo.csv)
+```{r}
+# clean up workspace environment
+rm(list = ls())
+
+# all packages used for the assignment
+library(mosaic)
+library(tidyverse)
+library(mosaicData)
+library(DataComputing)
+library(rvest)
+
+```
+```{r}
+
+```
+
+##### Loading data from Wikipedia into R is easy.
+It have the teams that have won the championship and the region that won the championship
+```{r}
+
+page <- ("https://en.wikipedia.org/wiki/League_of_Legends_World_Championship#Overview")
+topFour <- page %>%
+  read_html() %>%
+  html_nodes(css = "table") %>%
+  html_table(fill = TRUE)
+
+head(topFour[[3]])
+head(topFour[[4]])
+```
+
+
+##### Trying to load Kaggle data that's online but ending in csv into R, but failed.
+```{r}
+pageK <- ("https://www.kaggle.com/chuckephron/leagueoflegends#matchinfo.csv")
+tableListK <- pageK %>%
+  read_html() %>%
+  html_nodes(css = "table") %>%
+  html_table(fill = TRUE)
+
+head(tableListK)
+```
+
+##### Loading csv file locally
+```{r}
+matchData <- read.csv('/Users/jack/Desktop/STAT 184/matchinfo.csv')
+
+head(matchData)
+```
+
+##### Find out the number of games played by each league
+```{r}
+numLeague <-
+  matchData %>%
+  group_by(League) %>%
+  summarise(count = n())
+numLeague
+```
+
+```{r}
+
+ggplot(data=numLeague,aes(x=League,y=count ,fill=League))+
+  geom_bar(stat='identity',position='stack', width=1)+
+  ggtitle("Number of games different League played")
+```
+##### By looking at the graph, we can see that LCK (South Korea) have played most competitive matches out of all other different regions
+
+```{r}
+numType <-
+  matchData %>%
+  group_by(Type) %>%
+  summarise(count = n())
+numType
+```
+
+
+```{r}
+LCK <- 
+  matchData %>%
+  filter(League == "LCK")
+head (LCK)
+```
+
+##### All the matches that SKT (SK Telecom T1) have played
+```{r}
+BlueSKT <- 
+  matchData %>%
+  filter( grepl(pattern = "SKT", blueTeamTag))
+BlueSKT
+
+RedSKT <- 
+  matchData %>%
+  filter( grepl(pattern = "SKT", redTeamTag))
+RedSKT
+
+SKT<-
+  rbind(x = BlueSKT, y = RedSKT)
+SKT
+
+```
+
+##### All the matches that SSG (Samsung Galaxy) have played
+```{r}
+BlueSSG <- 
+  matchData %>%
+  filter( grepl(pattern = "SSG", blueTeamTag))
+BlueSSG
+
+RedSSG <- 
+  matchData %>%
+  filter( grepl(pattern = "SSG", redTeamTag))
+RedSSG
+
+SSG<-
+  full_join(x = BlueSSG, y = RedSSG )
+SSG
+```
+
+##### To see what is the longest gamelength everplayed and the shortest gamelength everplayed
+```{r}
+gameLength<- 
+  matchData%>%
+  select(gamelength)
+min(gameLength)
+max(gameLength)
+```
+
+##### The number of the wins by each side (Red/Blue)
+```{r}
+mod1 <- party::ctree (bResult ~ gamelength+rResult, data = LCK)
+
+plot(mod1, type = "simple")
+
+mod2 <- party::ctree (rResult ~ gamelength+bResult, data = LCK)
+
+plot(mod2, type = "simple")
+
+
+```
+
+
+
+##### Trying to find out which team wins using ifelse function, But failed.
+```{r}
+blueWins = 1
+blueLose = 0
+blueResult <- 
+  LCK%>%
+  select(bResult)
+ifelse ( blueResult == "1",blueWins, blueLose  )
+```
+
+
